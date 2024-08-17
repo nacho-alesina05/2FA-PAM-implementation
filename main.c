@@ -4,23 +4,46 @@
 #include <qrencode.h>
 #include <cotp.h>
 #include <string.h>
+#include <openssl/rand.h>
 
-#define COTP_SECRET_MAX_LEN 64
-#define COTP_SECRET_BASE32_LEN 64
+#define COTP_SECRET_MAX_LEN 20
+#define COTP_SECRET_BASE32_LEN 20
 
-char *generate_seed(){
-    return "JBSWY3DASHPK3PXP";
+unsigned char* generate_seed() {
+    unsigned char key[1];
+    int rc = RAND_bytes(key, sizeof(key));
+    printf("key: %s\n", key);
+    // char *seed = calloc(COTP_SECRET_MAX_LEN, sizeof(char));
+    // printf(seed);
+    // if (!key) {
+    //     fprintf(stderr, "Error allocating memory for seed.\n");
+    //     return NULL;
+    // }
+
+   if(rc != 1){
+        fprintf(stderr, "Error generating random seed.\n");
+        free(key);
+        return NULL;
+    }
+    
+
+    //seed[COTP_SECRET_MAX_LEN] = '\0';
+    return key;
+    // return "JBSWY3DPEHPK3PXP";
 }
 
-char *obtain_totp(char *secret, char *err){
+char *obtain_totp(unsigned char secret[128], char *err){
     return get_totp(secret, 6, 30, 2, err);
 }
 
-//ver porque funciona sin estar en base32
 
 int main() {
-    // Generar la semilla usando libcotp
-    char *secret = generate_seed();
+    // Generar la semilla usando generate_seed
+    unsigned char* secret = generate_seed();
+    // if (!secret) {
+    //     return 1;
+    // }
+
     char *error;
 /*
     // Codificar la semilla en Base32
@@ -52,5 +75,6 @@ int main() {
 
     char *totp = obtain_totp(secret, error);
     printf("TOTP: %s\n", totp);
+    free(secret);
     return 0;
 }
