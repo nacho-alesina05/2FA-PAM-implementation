@@ -1,7 +1,13 @@
 #ifndef GENERATE_SEED_H
 #define GENERATE_SEED_H
 
-#include <stddef.h>  // Para size_t
+#include <stdio.h>
+#include <stdlib.h>
+#include <cotp.h>
+#include <string.h>
+#include "sodium.h"
+#include "generate_seed.h"
+#include "custom_base32_encode.h"
 
 /**
  * Genera una semilla (seed) para TOTP y devuelve el URL en formato de cadena.
@@ -12,6 +18,6 @@
  * @param account Nombre de la cuenta para el URL de TOTP (ej. "user").
  * @return El URL de TOTP en formato de cadena, o NULL en caso de fallo.
  */
-char *generate_totp_url(size_t secret_length, size_t base32_length, const char *issuer, const char *account);
+unsigned char* generate_seed();
 
 #endif // SEED_GENERATOR_H

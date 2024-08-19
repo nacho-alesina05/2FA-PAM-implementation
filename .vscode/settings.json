@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "cotp.h": "c"
+        "cotp.h": "c",
+        "custom_base32_encode.h": "c",
+        "string.h": "c"
     }
 }
