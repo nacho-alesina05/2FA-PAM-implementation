@@ -8,6 +8,7 @@
 #include "sodium.h"
 #include "generate_seed.h"
 #include "custom_base32_encode.h"
+#include <gcrypt.h>
 
 /**
  * Genera una semilla (seed) para TOTP y devuelve el URL en formato de cadena.
