@@ -2,6 +2,8 @@
 
 se tiene q instalar la libreria qrencode y libcotp
 sudo apt-get install libqrencode-dev && libcotp-dev 
+para tener libgcrypt
+sudo apt-get install libgcrypt20-dev
 
 #Comando para ejecutar el programa: 
 
