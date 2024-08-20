@@ -23,6 +23,15 @@ int main() {
     custom_base32_encode(secret, COTP_SECRET_MAX_LEN, base32_secret);
     printf("Base32 Secret: %s\n", base32_secret);
 
+    FILE *file = fopen("/etc/2fa/secret_base32.txt", "w");
+    if (file) {
+        fprintf(file, "%s\n", base32_secret);
+        fclose(file);
+    } else {
+        perror("Error opening file");
+        return 1;
+    }
+
     // Generar el código QR con la URL de configuración de TOTP
     // Se crea la URL para la configuración de TOTP en una aplicación como Google Authenticator.
     char url[256];
