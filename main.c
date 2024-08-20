@@ -12,6 +12,44 @@
 #define COTP_SECRET_BASE32_LEN 32
 #define BASE32_SECRET_LEN 32
 
+char *read_file(const char *file_path) {
+    FILE *file = fopen(file_path, "r");
+    if (file == NULL) {
+        perror("Error al abrir el archivo");
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    rewind(file);
+
+    char *content = malloc(file_size + 1); // +1 para el carácter nulo
+    if (content == NULL) {
+        perror("Error al asignar memoria");
+        fclose(file);
+        return NULL;
+    }
+
+    size_t read_size = fread(content, 1, file_size, file);
+    if (read_size != file_size) {
+        perror("Error al leer el archivo");
+        free(content);
+        fclose(file);
+        return NULL;
+    }
+
+    content[file_size] = '\0';
+    fclose(file);
+
+    // Eliminar el carácter de nueva línea si existe
+    char *newline = strchr(content, '\n');
+    if (newline) {
+        *newline = '\0';
+    }
+
+    return content;
+}
+
 int main() {
     // Generar la semilla usando generate_seed
     // Se genera una clave secreta de 20 bytes de largo (COTP_SECRET_MAX_LEN).
@@ -23,14 +61,37 @@ int main() {
     custom_base32_encode(secret, COTP_SECRET_MAX_LEN, base32_secret);
     printf("Base32 Secret: %s\n", base32_secret);
 
-    FILE *file = fopen("/etc/2fa/secret_base32.txt", "w");
-    if (file) {
-        fprintf(file, "%s\n", base32_secret);
-        fclose(file);
-    } else {
-        perror("Error opening file");
-        return 1;
+    // Almacenar seed en lugar seguro
+
+    // Obtiene el directorio home del usuario actual
+    const char *home_dir = getenv("HOME");
+    if (home_dir == NULL) {
+        fprintf(stderr, "Error al obtener el directorio home\n");
+        return EXIT_FAILURE;
     }
+
+    // Construye la ruta del archivo
+    char file_path[256];
+    snprintf(file_path, sizeof(file_path), "%s/2fa.txt", home_dir);
+
+    // Abre el archivo en modo escritura, creándolo si no existe
+    FILE *file = fopen(file_path, "w");
+    if (file == NULL) {
+        perror("Error al abrir el archivo");
+        return EXIT_FAILURE;
+    }
+
+    // Escribe la semilla en el archivo
+    fprintf(file, "%s\n", base32_secret);
+
+    // Cierra el archivo
+    fclose(file);
+
+    // Cambia los permisos del archivo a r--------
+    // if (chmod(file_path, S_IRUSR) != 0) {
+    //     perror("Error al cambiar los permisos del archivo");
+    //     return EXIT_FAILURE;
+    // }
 
     // Generar el código QR con la URL de configuración de TOTP
     // Se crea la URL para la configuración de TOTP en una aplicación como Google Authenticator.
@@ -56,7 +117,7 @@ int main() {
     // Usar la clave en formato Base32 para obtener el TOTP
     // Se genera el código TOTP basado en la clave secreta en Base32.
     cotp_error_t error;
-    char *totp = obtain_totp(base32_secret, &error);
+    char *totp = obtain_totp(read_file(file_path), &error);
     if (error) {
         // Si ocurre un error durante la generación del TOTP, se imprime un mensaje de error.
         fprintf(stderr, "Error obtaining TOTP: %d\n", error);
