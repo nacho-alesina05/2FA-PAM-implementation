@@ -10,3 +10,7 @@ sudo apt-get install libgcrypt20-dev
 gcc -I./include -o generate_qr main.c src/custom_base32_encode.c src/generate_seed.c src/obtain_totp.c -lcrypt -lcotp -lgcrypt -lqrencode
 
 ./generate_qr
+
+
+#Para probar los modulos que funcionen correctamente los modulos PAM, ejecutar el script 3pasos.sh
+./3pasos.sh
