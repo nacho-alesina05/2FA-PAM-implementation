@@ -4,42 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-int main(int argc, char** argv) {
-    pam_handle_t* pamh = NULL;
-    int retval;
-
-    // Iniciar la sesión PAM
-    retval = pam_start("login", NULL, NULL, &pamh);
-    if (retval != PAM_SUCCESS) {
-        fprintf(stderr, "pam_start falló\n");
-        return 1;
-    }
-
-    // Establecer el nombre de usuario en el manejador PAM
-    const char* username = "usuario";  // Puedes reemplazar "usuario" con el nombre de usuario deseado
-    retval = pam_set_item(pamh, PAM_USER, username);
-    if (retval != PAM_SUCCESS) {
-        fprintf(stderr, "pam_set_item falló\n");
-        pam_end(pamh, retval);
-        return 1;
-    }
-
-    // Autenticación simple usando el módulo auth de PAM
-    retval = pam_authenticate(pamh, 0);
-    if (retval == PAM_SUCCESS) {
-        printf("Autenticación exitosa\n");
-    } else {
-        printf("Autenticación fallida\n");
-    }
-
-    // Finaliza la sesión PAM
-    retval = pam_end(pamh, retval);
-    if (retval != PAM_SUCCESS) {
-        fprintf(stderr, "pam_end falló\n");
-        return 1;
-    }
-
-    return 0;
+char *obtain_seed(){
+    return "JBSWY3DPEHPK3PXP";
 }
 
 // Implementación de pam_sm_authenticate
@@ -56,10 +22,11 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         fprintf(stderr, "No se pudo obtener la estructura de conversación\n");
         return retval;
     }
+    
 
     // Configurar el mensaje que queremos mostrar al usuario para el input
-    msg.msg_style = PAM_PROMPT_ECHO_ON;  // Tipo de mensaje que requiere input del usuario
-    msg.msg = "Ingrese 'TSI' para autenticarse: ";  // Mensaje a mostrar
+    msg.msg_style = PAM_PROMPT_ECHO_ON;
+    msg.msg = "Ingrese One-Time-Password: ";
     msgp = &msg;
 
     // Llamar a la función de conversación
@@ -71,14 +38,15 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 
     // Validar el input del usuario
     if (resp && resp->resp) {
-        if (strcmp(resp->resp, "TSI") == 0) {
+        //no es obtain seed sino el totp con dicha seed
+        if (strcmp(resp->resp, obtain_seed()) == 0) {
             free(resp->resp);
             free(resp);
-            return PAM_SUCCESS;  // Autenticación exitosa
+            return PAM_SUCCESS;
         } else {
             free(resp->resp);
             free(resp);
-            return PAM_AUTH_ERR;  // Autenticación fallida
+            return PAM_AUTH_ERR;
         }
     }
 

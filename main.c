@@ -3,7 +3,6 @@
 #include <qrencode.h>
 #include <cotp.h>
 #include <string.h>
-#include "sodium.h"
 #include "generate_seed.h"
 #include "custom_base32_encode.h"
 #include "obtain_totp.h"

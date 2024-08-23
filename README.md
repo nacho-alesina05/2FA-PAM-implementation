@@ -11,6 +11,6 @@ The following libraries must be downloaded:
 -libpam-dev
 
 ## For generating & installing the module: 
-The ssh connection begins hardcoded.
+The ssh connection is hardcoded.
 
 sh build.sh
