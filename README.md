@@ -1,16 +1,16 @@
 # 2FA-PAM-implementation
 
-se tiene q instalar la libreria qrencode y libcotp
-sudo apt-get install libqrencode-dev && libcotp-dev 
-para tener libgcrypt
-sudo apt-get install libgcrypt20-dev
+## Installation
+The following libraries must be downloaded:
+-libcotp
 
-#Comando para ejecutar el programa: 
+-qrencode
 
-gcc -I./include -o generate_qr main.c src/custom_base32_encode.c src/generate_seed.c src/obtain_totp.c -lcrypt -lcotp -lgcrypt -lqrencode
+-libgcrypt
 
-./generate_qr
+-libpam-dev
 
+## For generating & installing the module: 
+The ssh connection begins hardcoded.
 
-#Para probar los modulos que funcionen correctamente los modulos PAM, ejecutar el script 3pasos.sh
-./3pasos.sh
+sh build.sh
