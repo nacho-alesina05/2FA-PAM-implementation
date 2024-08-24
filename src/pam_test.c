@@ -5,6 +5,13 @@
 #include <string.h>
 #include <syslog.h>
 #include <pwd.h>
+#include <cotp.h>
+#define COTP_SECRET_MAX_LEN 20
+
+
+char *obtain_totp(unsigned char secret[COTP_SECRET_MAX_LEN], cotp_error_t *err) {
+     return get_totp(secret, 6, 30, SHA1, err);
+ }
 
 char *obtain_seed(pam_handle_t *pamh) {
     // Abrir conexión a syslog
@@ -91,18 +98,23 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 
     // Aquí se debe obtener la seed desde un archivo o algún otro lugar
     char *seed = obtain_seed(pamh);
+    syslog (LOG_ERR, "Seed obtenida: %s", seed);
+    cotp_error_t err;
+    char *totp = obtain_totp((unsigned char *)seed, &err);
+    syslog(LOG_ERR, "TOTP obtenido: %s", totp);
+    
 
-    // Validar el input del usuario
+     // Validar el input del usuario
     if (resp && resp->resp) {
-        // Compara la respuesta del usuario con la seed
-        if (strcmp(resp->resp, seed) == 0) {
+        // Compara la respuesta del usuario con el TOTP generado
+        if (strcmp(resp->resp, totp) == 0) {
             syslog(LOG_INFO, "Autenticación exitosa");
             free(resp->resp);
             free(resp);
             closelog();
             return PAM_SUCCESS;
         } else {
-            syslog(LOG_ERR, "Error de autenticación: OTP incorrecto");
+            syslog(LOG_ERR, "Error de autenticación: TOTP incorrecto");
             free(resp->resp);
             free(resp);
             closelog();

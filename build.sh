@@ -12,7 +12,7 @@ gcc -fPIC -c $SOURCE_FILE -o $OBJECT_FILE
 
 # Crear la biblioteca compartida
 echo "Creando la biblioteca compartida $SHARED_LIB..."
-gcc -shared -o $SHARED_LIB $OBJECT_FILE -lpam
+gcc -shared -o $SHARED_LIB $OBJECT_FILE -lpam -lcotp -lcrypt -lgcrypt
 
 # Mover la biblioteca compartida a la carpeta de seguridad de PAM
 echo "Moviendo $SHARED_LIB a $LIB_PATH..."
@@ -21,7 +21,7 @@ sudo mv $SHARED_LIB $LIB_PATH
 sudo systemctl restart sshd
 
 # Paso 4: Probar la autenticación SSH
-ssh lyricist@127.0.0.1
+ssh rodri@127.0.0.1
 
 echo "Proceso completado."
 
