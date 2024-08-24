@@ -21,7 +21,7 @@ sudo mv $SHARED_LIB $LIB_PATH
 sudo systemctl restart sshd
 
 # Paso 4: Probar la autenticación SSH
-ssh nachoalesina@127.0.0.1
+ssh lyricist@127.0.0.1
 
 echo "Proceso completado."
 
