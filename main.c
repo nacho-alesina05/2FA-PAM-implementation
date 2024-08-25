@@ -6,10 +6,19 @@
 #include "generate_seed.h"
 #include "custom_base32_encode.h"
 #include "obtain_totp.h"
+#include "cypher.h"
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 #define COTP_SECRET_MAX_LEN 20
 #define COTP_SECRET_BASE32_LEN 32
 #define BASE32_SECRET_LEN 32
+#define GCRY_CIPHER GCRY_CIPHER_AES256   // Algoritmo de cifrado AES-256
+#define GCRY_MODE GCRY_CIPHER_MODE_CBC   // Modo de operación CBC
+#define KEY_SIZE 32                      // Tamaño de la clave para AES-256 (32 bytes)
+#define IV_SIZE 16
+#define SALT_SIZE 16
 
 char *read_file(const char *file_path) {
     FILE *file = fopen(file_path, "r");
@@ -65,6 +74,7 @@ int main() {
     FILE *file = fopen(file_path, "r");
     if (file != NULL) {
         printf("El archivo 2fa.txt ya existe en el directorio home. No se sobrescribirá.\n");
+        printf(aes_decrypt_cbc(read_file(file_path), strlen(read_file(file_path)), "rodri"));
         fclose(file);
     } else {
         // Generar la semilla usando generate_seed
@@ -82,17 +92,18 @@ int main() {
             return EXIT_FAILURE;
         }
 
+        // Solicitar la contraseña para cifrar
+        printf("Introduce la contraseña para cifrar: ");
+        char password[256];
+        fgets(password, sizeof(password), stdin);
+        password[strcspn(password, "\n")] = '\0'; // Eliminar el salto de línea
         // Escribe la semilla en el archivo
-        fprintf(file, "%s\n", base32_secret);
+        // fprintf(file, "%s\n", base32_secret);
+        fprintf(file, "%s\n", aes_encrypt_cbc(base32_secret, password));
+        // fprintf(file, "%s\n", aes_decrypt_cbc(aes_encrypt_cbc(base32_secret, password), strlen(base32_secret), "rodri"));
 
         // Cierra el archivo
         fclose(file);
-
-        // Cambia los permisos del archivo a r--------
-        // if (chmod(file_path, S_IRUSR) != 0) {
-        //     perror("Error al cambiar los permisos del archivo");
-        //     return EXIT_FAILURE;
-        // }
 
         // Generar el código QR con la URL de configuración de TOTP
         char url[256];
@@ -113,6 +124,15 @@ int main() {
         QRcode_free(qrcode);
         printf("\n");
     }
+
+        // Cambia los permisos del archivo para que solo el dueño pueda leer y escribir
+    if (chmod(file_path, S_IRUSR | S_IWUSR) != 0) {
+        perror("Error al cambiar permisos del archivo");
+        return EXIT_FAILURE;
+    }
+
+    printf("Permisos del archivo %s modificados exitosamente\n", file_path);
+    return EXIT_SUCCESS;
 
     // Usar la clave en formato Base32 para obtener el TOTP
     cotp_error_t error;
