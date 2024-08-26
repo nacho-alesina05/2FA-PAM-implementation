@@ -14,6 +14,7 @@
 #define BLOCK_SIZE 16                    // Tamaño del bloque AES (16 bytes)
 #define SALT_SIZE 16                     // Tamaño del salt para PBKDF2
 
+extern int debug; //variable global para debug
 
 // Función para eliminar el padding PKCS7 del texto desencriptado
 size_t remove_padding(char *decrypted, size_t decrypted_len) {
@@ -24,12 +25,16 @@ size_t remove_padding(char *decrypted, size_t decrypted_len) {
     return decrypted_len - pad_value;
 }
 
-char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char *password) {
+char* aes_decrypt_cbc(pam_handle_t *pamh, const char *ciphertext, size_t ciphertext_len, const char *password) {
     gcry_cipher_hd_t cipher_hd;
     gcry_error_t gcry_ret;
     char *decrypted;
     char iv[BLOCK_SIZE] = "1234567890abcdef";      // Vector de inicialización (IV)
     unsigned char key[KEY_SIZE];                   // Clave derivada
+
+    if(debug){
+        syslog(LOG_INFO, "Starting decryption process");
+    }
 
     // Salt para PBKDF2 (en una aplicación real, usarías el mismo salt que en la encriptación)
     unsigned char salt[SALT_SIZE] = "fixed_salt1234";
@@ -47,14 +52,22 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
         key                   // Salida de la clave derivada
     );
     if (gcry_ret) {
-        fprintf(stderr, "Error al derivar la clave: %s\n", gcry_strerror(gcry_ret));
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Error obtaining the key");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        closelog();
         return NULL;
     }
 
     // Crear espacio para el texto desencriptado
     decrypted = malloc(ciphertext_len);
     if (!decrypted) {
-        fprintf(stderr, "Error al asignar memoria para decrypted\n");
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Error allocating memory for decrypted text");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        closelog();
         return NULL;
     }
 
@@ -66,7 +79,11 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
     // Crear el manejador de cifrado
     gcry_ret = gcry_cipher_open(&cipher_hd, GCRY_CIPHER, GCRY_MODE, 0);
     if (gcry_ret) {
-        fprintf(stderr, "Error al abrir el manejador de cifrado: %s\n", gcry_strerror(gcry_ret));
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Error opening the cipher");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        closelog();
         free(decrypted);
         return NULL;
     }
@@ -74,7 +91,10 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
     // Establecer la clave de cifrado
     gcry_ret = gcry_cipher_setkey(cipher_hd, key, KEY_SIZE);
     if (gcry_ret) {
-        fprintf(stderr, "Error al establecer la clave: %s\n", gcry_strerror(gcry_ret));
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Error establishing the key");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
         gcry_cipher_close(cipher_hd);
         free(decrypted);
         return NULL;
@@ -83,7 +103,10 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
     // Establecer el vector de inicialización (IV)
     gcry_ret = gcry_cipher_setiv(cipher_hd, iv, BLOCK_SIZE);
     if (gcry_ret) {
-        fprintf(stderr, "Error al establecer el IV: %s\n", gcry_strerror(gcry_ret));
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Error establishing the IV");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
         gcry_cipher_close(cipher_hd);
         free(decrypted);
         return NULL;
@@ -92,7 +115,10 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
     // Desencriptar el texto cifrado
     gcry_ret = gcry_cipher_decrypt(cipher_hd, decrypted, ciphertext_len, ciphertext, ciphertext_len);
     if (gcry_ret) {
-        fprintf(stderr, "Error al desencriptar: %s\n", gcry_strerror(gcry_ret));
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Error decrypting key");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
         gcry_cipher_close(cipher_hd);
         free(decrypted);
         return NULL;
@@ -106,7 +132,9 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
 
     // Asegurarse de que el texto desencriptado esté terminado en '\0'
     decrypted[decrypted_len] = '\0';
-
+    if(debug){
+        pam_syslog(pamh, LOG_INFO, "Finished decryption process with success");
+    }
     return decrypted;
 }
 
@@ -122,25 +150,31 @@ char *obtain_seed(pam_handle_t *pamh) {
     const char *username;
     int retval = pam_get_user(pamh, &username, NULL);
     if (retval != PAM_SUCCESS) {
-        syslog(LOG_ERR, "No se pudo obtener el nombre de usuario");
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Username could not be obtained");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
         closelog();
         return NULL;
-    }
-    syslog(LOG_ERR, "Nombre de usuario: %s", username);
+    };
+    
+    syslog(LOG_INFO, "Username: %s", username);
 
     // Construir la ruta del archivo
     char file_path[256];
     snprintf(file_path, sizeof(file_path), "/home/%s/2fa.txt", username);
-    syslog(LOG_INFO, "Ruta del archivo: %s", file_path);
+    syslog(LOG_INFO, "2FA file_path: %s", file_path);
 
     // Abrir el archivo para lectura
     FILE *file = fopen(file_path, "r");
     if (file == NULL) {
-        syslog(LOG_ERR, "Error al abrir el archivo %s", file_path);
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "The file could not be opened");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
         closelog();
         return NULL;
     }
-    syslog(LOG_INFO, "Archivo abierto con éxito");
 
     // Leer la seed del archivo y eliminar el salto de línea al final
     static char seed[256];
@@ -150,10 +184,12 @@ char *obtain_seed(pam_handle_t *pamh) {
         if (len > 0 && seed[len-1] == '\n') {
             seed[len-1] = '\0';
         }
-        syslog(LOG_INFO, "Seed leída: %s", seed);
+        syslog(LOG_INFO, "The encripted seed was obtained");
     } else {
-        syslog(LOG_ERR, "Error al leer la seed del archivo");
-        fclose(file);
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Error obtaining seed from file");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
         closelog();
         return NULL;
     }
@@ -166,10 +202,25 @@ char *obtain_seed(pam_handle_t *pamh) {
 
 // Implementación de pam_sm_authenticate
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) {
+
     // Abrir conexión a syslog
     openlog("pam_test", LOG_PID | LOG_CONS, LOG_AUTH);
 
-    syslog(LOG_INFO, "Entró a mi módulo");
+    //Ver si paso debug flag
+    int i = 0;
+    while (i < argc) {
+        const char *pam_option = argv[i];
+        if (strcmp(pam_option, "debug") == 0) {
+            debug = 1;
+            break;
+        }
+        i++;
+    }
+
+    //Inicializo modulo
+    if(debug){
+        syslog(LOG_INFO, "2FA PAM Module: Debug mode enabled");
+    }
     const struct pam_conv *conv;
     struct pam_message msg;
     const struct pam_message *msgp;
@@ -177,55 +228,82 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     int retval;
 
     const char *password;
-    // int retval;
 
     // Obtener la contraseña ingresada por el usuario
     retval = pam_get_item(pamh, PAM_AUTHTOK, (const void **)&password);
     if (retval != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "Failed to get authentication token");
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Failed to get authentication token");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        closelog();
         return retval;
     }
-    syslog(LOG_ERR, "Contraseña ingresada: %s", password);
 
     // Obtener la estructura de conversación
     retval = pam_get_item(pamh, PAM_CONV, (const void **)&conv);
     if (retval != PAM_SUCCESS || conv == NULL) {
-        syslog(LOG_ERR, "No se pudo obtener la estructura de conversación");
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Failed to get the conversation function");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
         closelog();
         return retval;
     }
 
     // Configurar el mensaje que queremos mostrar al usuario para el input
     msg.msg_style = PAM_PROMPT_ECHO_ON;
-    msg.msg = "Ingrese One-Time-Password: ";
+    msg.msg = "One-Time-Password: ";
     msgp = &msg;
 
     // Llamar a la función de conversación
     retval = conv->conv(1, &msgp, &resp, conv->appdata_ptr);
     if (retval != PAM_SUCCESS) {
-        syslog(LOG_ERR, "La función de conversación falló");
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Conversation function failed");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
         closelog();
         return retval;
     }
 
     // Aquí se debe obtener la seed desde un archivo o algún otro lugar
     char *seed = obtain_seed(pamh);
+    if(seed == NULL){
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "The seed could not be obtained");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        closelog();
+        return PAM_AUTH_ERR;
+    }
 
-    aes_decrypt_cbc(seed, strlen(seed), password);
-    syslog(LOG_ERR, "Seed: flagflag %s", aes_decrypt_cbc(seed, strlen(seed), password));
     cotp_error_t err;
 
     // Validar el input del usuario
     if (resp && resp->resp) {
         // Compara la respuesta del usuario con la seed
-        if (strcmp(resp->resp, obtain_totp(aes_decrypt_cbc(seed, strlen(seed), password),&err)) == 0) {
-            syslog(LOG_INFO, "Autenticación exitosa");
+        char* totp = obtain_totp(aes_decrypt_cbc(pamh, seed, strlen(seed), password),&err);
+        if(totp == NULL){
+            if(debug){
+            pam_syslog(pamh, LOG_ERR, "Error obtaining TOTP");
+        }
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        closelog();
+        return PAM_AUTH_ERR;       
+        }
+        if (strcmp(resp->resp, totp) == 0) {
+            syslog(LOG_INFO, "User authenticated successfully");
             free(resp->resp);
             free(resp);
             closelog();
             return PAM_SUCCESS;
         } else {
-            syslog(LOG_ERR, "Error de autenticación: OTP incorrecto");
+            if(debug){
+            pam_syslog(pamh, LOG_ERR, "TOTP incorrect");
+            }
+            pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+            closelog();
             free(resp->resp);
             free(resp);
             closelog();
@@ -240,8 +318,9 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         }
         free(resp);
     }
-
-    syslog(LOG_ERR, "Error: No se obtuvo una respuesta válida");
+    if(debug){
+        syslog(LOG_ERR, "Error: Not a valid response");
+    }
     closelog();
     return PAM_AUTH_ERR;  // Autenticación fallida si no se pudo obtener la respuesta
 }
