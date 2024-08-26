@@ -4,6 +4,7 @@
         "custom_base32_encode.h": "c",
         "string.h": "c",
         "obtain_totp.h": "c",
-        "gcrypt.h": "c"
+        "gcrypt.h": "c",
+        "pam_appl.h": "c"
     }
 }

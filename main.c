@@ -9,7 +9,8 @@
 #include "cypher.h"
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <security/pam_appl.h>
+#include <security/pam_misc.h>
 
 #define COTP_SECRET_MAX_LEN 20
 #define COTP_SECRET_BASE32_LEN 32
@@ -19,6 +20,57 @@
 #define KEY_SIZE 32                      // Tamaño de la clave para AES-256 (32 bytes)
 #define IV_SIZE 16
 #define SALT_SIZE 16
+
+struct user_data {
+    const char *password;
+};
+
+int my_conv(int num_msg, const struct pam_message **msg, struct pam_response **resp, void *appdata_ptr) {
+    struct pam_response *aresp;
+    struct user_data *udata = (struct user_data *) appdata_ptr;
+
+    // Verifica que haya al menos un mensaje
+    if (num_msg <= 0) return PAM_CONV_ERR;
+
+    // Asigna memoria para las respuestas
+    aresp = calloc(num_msg, sizeof(struct pam_response));
+    if (aresp == NULL) return PAM_CONV_ERR;
+
+    // Procesa cada mensaje
+    for (int i = 0; i < num_msg; i++) {
+        aresp[i].resp_retcode = 0;
+        if (msg[i]->msg_style == PAM_PROMPT_ECHO_OFF || msg[i]->msg_style == PAM_PROMPT_ECHO_ON) {
+            // Siempre responde con la misma contraseña
+            aresp[i].resp = strdup(udata->password);
+        } else {
+            // Responde con una cadena vacía para otros tipos de mensajes
+            aresp[i].resp = strdup("");
+        }
+    }
+
+    // Asigna el puntero a las respuestas
+    *resp = aresp;
+    return PAM_SUCCESS;
+}
+
+
+int validate_password(const char *user, const char *password) {
+    pam_handle_t *pamh = NULL;
+    int retval;
+
+    struct user_data udata = {password};
+    const struct pam_conv conv = {my_conv, &udata};
+
+    retval = pam_start("login", user, &conv, &pamh);
+
+    if (retval == PAM_SUCCESS) {
+        retval = pam_authenticate(pamh, 0); // Check the password
+    }
+
+    pam_end(pamh, retval);
+
+    return (retval == PAM_SUCCESS ? 1 : 0); // Return 1 if successful, 0 if not
+}
 
 char *read_file(const char *file_path) {
     FILE *file = fopen(file_path, "r");
@@ -59,6 +111,37 @@ char *read_file(const char *file_path) {
 }
 
 int main() {
+
+    
+    const char *username = getenv("USER");  // Obtener el nombre de usuario del entorno
+    if (!username) {
+        fprintf(stderr, "No se pudo obtener el nombre de usuario.\n");
+        return 1;
+    }
+    
+    // Solicitar la contraseña para cifrar con un máximo de 3 intentos
+    char password[256];
+    int attempts = 0;
+    const int max_attempts = 3;
+    while (attempts < max_attempts) {
+        printf("Introduce la contraseña para cifrar: ");
+        fgets(password, sizeof(password), stdin);
+        password[strcspn(password, "\n")] = '\0'; // Eliminar el salto de línea
+
+        // Verificar la contraseña ingresada contra la contraseña del sistema usando PAM
+        if (validate_password(username, password)) {
+            printf("Contraseña verificada correctamente.\n");
+            break;
+        } else {
+            printf("Contraseña incorrecta. Inténtalo de nuevo.\n");
+            attempts++;
+            if (attempts == max_attempts) {
+                printf("Número máximo de intentos alcanzado. Terminando el programa.\n");
+                return EXIT_FAILURE;
+            }
+        }
+    }
+
     // Obtiene el directorio home del usuario actual
     const char *home_dir = getenv("HOME");
     if (home_dir == NULL) {
@@ -70,11 +153,11 @@ int main() {
     char file_path[256];
     snprintf(file_path, sizeof(file_path), "%s/2fa.txt", home_dir);
 
+
     // Verificar si el archivo ya existe
     FILE *file = fopen(file_path, "r");
     if (file != NULL) {
         printf("El archivo 2fa.txt ya existe en el directorio home. No se sobrescribirá.\n");
-        printf(aes_decrypt_cbc(read_file(file_path), strlen(read_file(file_path)), "rodri"));
         fclose(file);
     } else {
         // Generar la semilla usando generate_seed
@@ -92,16 +175,8 @@ int main() {
             return EXIT_FAILURE;
         }
 
-        // Solicitar la contraseña para cifrar
-        printf("Introduce la contraseña para cifrar: ");
-        char password[256];
-        fgets(password, sizeof(password), stdin);
-        password[strcspn(password, "\n")] = '\0'; // Eliminar el salto de línea
         // Escribe la semilla en el archivo
-        // fprintf(file, "%s\n", base32_secret);
         fprintf(file, "%s\n", aes_encrypt_cbc(base32_secret, password));
-        // fprintf(file, "%s\n", aes_decrypt_cbc(aes_encrypt_cbc(base32_secret, password), strlen(base32_secret), "rodri"));
-
         // Cierra el archivo
         fclose(file);
 
@@ -123,26 +198,15 @@ int main() {
         }
         QRcode_free(qrcode);
         printf("\n");
-    }
 
         // Cambia los permisos del archivo para que solo el dueño pueda leer y escribir
-    if (chmod(file_path, S_IRUSR | S_IWUSR) != 0) {
-        perror("Error al cambiar permisos del archivo");
-        return EXIT_FAILURE;
+        if (chmod(file_path, S_IRUSR | S_IWUSR) != 0) {
+            perror("Error al cambiar permisos del archivo");
+            return EXIT_FAILURE;
+        }
+
+        printf("Permisos del archivo %s modificados exitosamente\n", file_path);
     }
 
-    printf("Permisos del archivo %s modificados exitosamente\n", file_path);
     return EXIT_SUCCESS;
-
-    // Usar la clave en formato Base32 para obtener el TOTP
-    cotp_error_t error;
-    char *totp = obtain_totp(read_file(file_path), &error);
-    if (error) {
-        fprintf(stderr, "Error obtaining TOTP: %d\n", error);
-    } else {
-        printf("TOTP: %s\n", totp);
-        free(totp);
-    }
-
-    return 0;
 }
