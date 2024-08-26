@@ -11,11 +11,13 @@ QR_GENERATOR = generate_qr
 QR_SOURCES = main.c $(SRC_DIR)/generate_seed.c $(SRC_DIR)/custom_base32_encode.c $(SRC_DIR)/obtain_totp.c $(SRC_DIR)/cypher.c
 QR_FLAGS = -I$(INCLUDE_DIR) -lcotp -lqrencode -lcrypto -lgcrypt -lpam -lpam_misc
 
-# Compilar y generar el QR
+# Objetivo por defecto
+all: $(QR_GENERATOR) $(OBJECT_FILE) $(SHARED_LIB) install
+
+# Regla para compilar y generar el ejecutable QR
 $(QR_GENERATOR): $(QR_SOURCES)
 	@gcc $(QR_SOURCES) $(QR_FLAGS) -o $@
-	@echo "Generando el QR..."
-	@./$(QR_GENERATOR)
+	@echo "Generado $@"
 
 # Compilar el archivo fuente a objeto
 $(OBJECT_FILE): $(SOURCE_FILE)
@@ -28,9 +30,9 @@ $(SHARED_LIB): $(OBJECT_FILE)
 	@echo "Creada la biblioteca compartida $@"
 
 # Mover la biblioteca compartida a la carpeta de seguridad de PAM
-install: $(SHARED_LIB)
-	@echo "Moviendo $< a $(LIB_PATH)..."
-	@sudo mv $< $(LIB_PATH)
+install: $(QR_GENERATOR) $(OBJECT_FILE) $(SHARED_LIB)
+	@echo "Moviendo $(SHARED_LIB) a $(LIB_PATH)..."
+	@sudo mv $(SHARED_LIB) $(LIB_PATH)
 	@sudo systemctl restart sshd
 	@echo "Proceso completado."
 
@@ -39,7 +41,4 @@ clean:
 	@rm -f $(QR_GENERATOR) $(OBJECT_FILE) $(SHARED_LIB)
 	@echo "Archivos limpiados."
 
-.PHONY: all clean install
-
-# Comando por defecto
-all: $(QR_GENERATOR) $(OBJECT_FILE) $(SHARED_LIB) install
+.PHONY: clean install all
