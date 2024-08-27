@@ -141,7 +141,7 @@ char *obtain_totp(unsigned char secret[COTP_SECRET_MAX_LEN], cotp_error_t *err) 
      return get_totp(secret, 6, 30, SHA1, err);
  }
 
-char *obtain_seed(pam_handle_t *pamh, int debug, char *username) {
+char *obtain_seed(pam_handle_t *pamh, int debug, const char *username) {
     // Abrir conexión a syslog
     openlog("pam_test", LOG_PID | LOG_CONS, LOG_AUTH);
     

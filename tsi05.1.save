@@ -1,0 +1,66 @@
+.TH TSI05 1 "August 2024" "Version 1.0" "User Manuals"
+.SH NAME
+tsi05 \- Módulo PAM para autenticación 2FA
+.SH SYNOPSIS
+.B tsi05
+.SH DESCRIPTION
+El programa tsi05 incluye un módulo PAM personalizado para autenticación de dos factores (2FA) y un generador de códigos QR para facilitar la configuración del 2FA.
+
+.SH INSTALLATION
+.PP
+Para instalar el módulo PAM y el generador de QR, sigue los pasos a continuación:
+.IP 1
+Clona el repositorio y accede al directorio del proyecto:
+.sp
+.B git clone https://example.com/repository.git
+.B cd repository
+.IP 2
+Instala las dependencias necesarias:
+.sp
+.B sudo apt-get update
+.B sudo apt-get install build-essential libcotp-dev libqrencode-dev libsodium-dev libssl-dev libgcrypt-dev libpam-dev
+.IP 3
+Compila el generador de QR y el módulo PAM:
+.sp
+.B make
+.IP 4
+Instala el módulo PAM:
+.sp
+.B make install
+.PP
+El comando `make install` moverá la biblioteca compartida a la carpeta de seguridad de PAM y reiniciará el servicio SSH.
+
+.SH CONFIGURATION
+.PP
+Configura el módulo PAM añadiendo la siguiente línea al archivo de configuración de PAM correspondiente (por ejemplo, /etc/pam.d/sshd):
+.sp
+.B auth required pam_test.so
+.PP
+Asegúrate de que SSH esté configurado para permitir PAM editando el archivo /etc/ssh/sshd_config:
+.sp
+.B UsePAM yes
+.B ChallengeResponseAuthentication yes
+.PP
+Reinicia el servicio SSH:
+.sp
+.B sudo systemctl restart sshd
+.SH USAGE
+.PP
+Ejecuta el generador de QR para crear un código QR que puedas escanear con tu aplicación de autenticación:
+.sp
+.B ./generate_qr
+.PP
+Introduce la contraseña que se utilizará para cifrar la semilla cuando se te solicite.
+
+.SH CLEANUP
+.PP
+Para eliminar archivos generados durante el proceso de construcción, usa:
+.sp
+.B make clean
+.SH TROUBLESHOOTING
+.PP
+- **Error al compilar el módulo PAM**: Asegúrate de que todas las bibliotecas necesarias estén instaladas.
+.PP
+- **Error de autenticación**: Verifica la configuración en /etc/pam.d/sshd y el archivo 2fa.txt.
+.SH AUTHOR
+Rodrigo Aguillon <rodrigo.aguillon@seciu.edu.uy>
