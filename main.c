@@ -116,12 +116,16 @@ int main() {
     }
     
     // Solicitar la contraseña para cifrar con un máximo de 3 intentos
-    char password[256];
+    char *password;
     int attempts = 0;
     const int max_attempts = 3;
     while (attempts < max_attempts) {
-        printf("Introduce la contraseña para cifrar: ");
-        fgets(password, sizeof(password), stdin);
+        password = getpass("Introduce la contraseña para cifrar: ");
+        // Eliminar el salto de línea al final si es necesario
+        size_t len = strlen(password);
+        if (len > 0 && password[len-1] == '\n') {
+            password[len-1] = '\0';
+        }
         password[strcspn(password, "\n")] = '\0'; // Eliminar el salto de línea
 
         // Verificar la contraseña ingresada contra la contraseña del sistema usando PAM
