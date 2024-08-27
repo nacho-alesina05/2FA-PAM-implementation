@@ -2,10 +2,12 @@
 SRC_DIR = src
 INCLUDE_DIR = include
 LIB_PATH = /lib/x86_64-linux-gnu/security/
+MAN_DIR = /usr/share/man/man1/
 SOURCE_FILE = $(SRC_DIR)/pam_test.c
 OBJECT_FILE = pam_test.o
 SHARED_LIB = pam_test.so
 QR_GENERATOR = generate_qr
+MANUAL_FILE = tsi05.1
 
 # Archivos fuente adicionales para generar el QR
 QR_SOURCES = main.c $(SRC_DIR)/generate_seed.c $(SRC_DIR)/custom_base32_encode.c $(SRC_DIR)/obtain_totp.c $(SRC_DIR)/cypher.c
@@ -33,6 +35,10 @@ $(SHARED_LIB): $(OBJECT_FILE)
 install: $(QR_GENERATOR) $(OBJECT_FILE) $(SHARED_LIB)
 	@echo "Moviendo $(SHARED_LIB) a $(LIB_PATH)..."
 	@sudo mv $(SHARED_LIB) $(LIB_PATH)
+	@sudo cp $(MANUAL_FILE) $(MAN_DIR)  # Copiar la página de manual
+	@sudo mandb  # Actualizar la base de datos de manuales
+	@sudo systemctl restart sshd
+	@echo "Proceso completado."
 	@sudo systemctl restart sshd
 	@echo "Proceso completado."
 

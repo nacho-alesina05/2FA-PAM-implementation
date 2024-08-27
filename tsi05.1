@@ -1,0 +1,133 @@
+.TH TSI05 1 "August 2024" "Version 1.0" "User Manuals"
+.SH NAME
+tsi05 \- Módulo PAM para autenticación 2FA
+.SH SYNOPSIS
+.B tsi05
+.SH DESCRIPTION
+El programa tsi05 incluye un módulo PAM personalizado para autenticación de dos factores (2FA) y un generador de códigos QR para facilitar la configuración del 2FA. Asegúrate de seguir cada paso cuidadosamente para asegurar una instalación y configuración correcta.
+
+.SH INSTALLATION
+.PP
+Esta guía proporciona instrucciones detalladas para instalar y configurar un módulo PAM personalizado para autenticación de dos factores (2FA) y un generador de códigos QR.
+
+.SH REQUISITOS PREVIOS
+.PP
+Sistema Operativo: Ubuntu 20.04 (o una versión similar de Linux)
+.PP
+Herramientas de Desarrollo:
+.IP \[ \]
+GCC
+.IP \[ \]
+Make
+.PP
+Bibliotecas necesarias:
+.IP \[ \]
+libcotp
+.IP \[ \]
+libqrencode
+.IP \[ \]
+libcrypto
+.IP \[ \]
+libgcrypt
+.IP \[ \]
+libpam
+.IP \[ \]
+libpam_misc
+.PP
+Permisos de Administrador: Se requiere acceso sudo para mover archivos y reiniciar servicios.
+
+.SH PASOS DE INSTALACIÓN
+.PP
+1. Clonar el Repositorio
+.IP \[ \]
+Asegúrate de tener el código fuente en tu máquina. Puedes clonar el repositorio desde el control de versiones (si aplica).
+.sp
+.B git clone https://github.com/nacho-alesina05/2FA-PAM-implementation.git
+.B cd repository
+
+.PP
+2. Preparar el Entorno
+.IP \[ \]
+Instala las dependencias necesarias:
+.sp
+.B sudo apt-get update
+.B sudo apt-get install build-essential libcotp-dev libqrencode-dev libgcrypt-dev libpam-dev
+
+.PP
+3. Compilar el Generador de QR y el Módulo PAM
+.IP \[ \]
+a. Generar el Ejecutable QR
+.IP \[ \]
+Ejecuta el comando make para compilar el generador de QR y el módulo PAM, mover la biblioteca compartida a la carpeta de seguridad de PAM y reiniciar el servicio SSH:
+.sp
+.B make
+
+.PP
+Esto compilará el ejecutable generate_qr, el archivo objeto pam_test.o, y la biblioteca compartida pam_test.so.
+
+.PP
+4. Configurar el Módulo PAM
+.IP \[ \]
+a. Editar la Configuración PAM
+.IP \[ \]
+Añade la línea para el módulo PAM en el archivo de configuración de PAM correspondiente. Por ejemplo, para SSH, edita el archivo /etc/pam.d/sshd:
+.sp
+.B sudo nano /etc/pam.d/sshd
+.PP
+Añade la siguiente línea al final del archivo:
+.sp
+.B auth required pam_test.so
+.PP
+Guarda y cierra el archivo.
+.IP \[ \]
+b. Configurar SSH
+.IP \[ \]
+Asegúrate de que el servicio SSH esté configurado para permitir el uso de PAM. Edita el archivo /etc/ssh/sshd_config:
+.sp
+.B sudo nano /etc/ssh/sshd_config
+.PP
+Verifica que las siguientes líneas estén presentes y configuradas correctamente:
+.sp
+.B UsePAM yes
+.B ChallengeResponseAuthentication yes
+.PP
+Guarda y cierra el archivo.
+.PP
+Reinicia el servicio SSH:
+.sp
+.B sudo systemctl restart sshd
+
+.PP
+5. Configurar el Generador de QR
+.IP \[ \]
+a. Ejecutar el Generador de QR
+.IP \[ \]
+Ejecuta el generador de QR para crear un código QR que puedas escanear con tu aplicación de autenticación:
+.sp
+.B ./generate_qr
+.PP
+Introduce la contraseña que se utilizará para cifrar la semilla cuando se te solicite. Esta semilla se almacenará en el archivo 2fa.txt en el directorio de inicio del usuario.
+
+.PP
+6. Verificar la Instalación
+.IP \[ \]
+Para verificar que la autenticación 2FA esté funcionando correctamente, intenta iniciar sesión en el servidor SSH y proporciona el código 2FA cuando se te solicite.
+
+.PP
+7. Limpiar Archivos Generados
+.IP \[ \]
+Para eliminar archivos generados durante el proceso de construcción, utiliza el comando:
+.sp
+.B make clean
+
+.SH PROBLEMAS Y SOLUCIONES
+.PP
+- **Error al compilar el módulo PAM**: Asegúrate de que todas las bibliotecas necesarias estén instaladas y que las rutas a los archivos de encabezado sean correctas.
+.PP
+- **Error de autenticación**: Verifica que el módulo PAM esté configurado correctamente en el archivo /etc/pam.d/sshd y que el archivo 2fa.txt contenga la semilla cifrada correctamente.
+
+.SH AUTHORS
+Rodrigo Aguillon <rodrigo.aguillon@fing.edu.uy>
+.PP
+Ignacio Alesina  <ignacio.alesina@fing.edu.uy>
+
