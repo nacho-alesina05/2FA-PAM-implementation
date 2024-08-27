@@ -14,8 +14,6 @@
 #define BLOCK_SIZE 16                    // Tamaño del bloque AES (16 bytes)
 #define SALT_SIZE 16                     // Tamaño del salt para PBKDF2
 
-extern int debug; //variable global para debug
-
 // Función para eliminar el padding PKCS7 del texto desencriptado
 size_t remove_padding(char *decrypted, size_t decrypted_len) {
     unsigned char pad_value = decrypted[decrypted_len - 1];
@@ -25,7 +23,7 @@ size_t remove_padding(char *decrypted, size_t decrypted_len) {
     return decrypted_len - pad_value;
 }
 
-char* aes_decrypt_cbc(pam_handle_t *pamh, const char *ciphertext, size_t ciphertext_len, const char *password) {
+char* aes_decrypt_cbc(pam_handle_t *pamh, const char *ciphertext, size_t ciphertext_len, const char *password, int debug) {
     gcry_cipher_hd_t cipher_hd;
     gcry_error_t gcry_ret;
     char *decrypted;
@@ -142,21 +140,9 @@ char *obtain_totp(unsigned char secret[COTP_SECRET_MAX_LEN], cotp_error_t *err) 
      return get_totp(secret, 6, 30, SHA1, err);
  }
 
-char *obtain_seed(pam_handle_t *pamh) {
+char *obtain_seed(pam_handle_t *pamh, int debug, char *username) {
     // Abrir conexión a syslog
     openlog("pam_test", LOG_PID | LOG_CONS, LOG_AUTH);
-
-    // Obtener el nombre de usuario
-    const char *username;
-    int retval = pam_get_user(pamh, &username, NULL);
-    if (retval != PAM_SUCCESS) {
-        if(debug){
-            pam_syslog(pamh, LOG_ERR, "Username could not be obtained");
-        }
-        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
-        closelog();
-        return NULL;
-    };
     
     syslog(LOG_INFO, "Username: %s", username);
 
@@ -208,6 +194,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 
     //Ver si paso debug flag
     int i = 0;
+    int debug = 0;
     while (i < argc) {
         const char *pam_option = argv[i];
         if (strcmp(pam_option, "debug") == 0) {
@@ -229,13 +216,25 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 
     const char *password;
 
+    //Obtener usuario
+    const char *username;
+    retval = pam_get_user(pamh, &username, NULL);
+    if (retval != PAM_SUCCESS) {
+        if(debug){
+            pam_syslog(pamh, LOG_ERR, "Username could not be obtained");
+        }
+            pam_syslog(pamh, LOG_ERR, "Session closed, the user %s could not be authenticated", username);
+        closelog();
+        return retval;
+    };
+
     // Obtener la contraseña ingresada por el usuario
     retval = pam_get_item(pamh, PAM_AUTHTOK, (const void **)&password);
     if (retval != PAM_SUCCESS) {
         if(debug){
             pam_syslog(pamh, LOG_ERR, "Failed to get authentication token");
         }
-        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user %s could not be authenticated", username);
         closelog();
         return retval;
     }
@@ -246,7 +245,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         if(debug){
             pam_syslog(pamh, LOG_ERR, "Failed to get the conversation function");
         }
-        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user %s could not be authenticated", username);
         closelog();
         return retval;
     }
@@ -262,18 +261,18 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         if(debug){
             pam_syslog(pamh, LOG_ERR, "Conversation function failed");
         }
-        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user %s could not be authenticated", username);
         closelog();
         return retval;
     }
 
     // Aquí se debe obtener la seed desde un archivo o algún otro lugar
-    char *seed = obtain_seed(pamh);
+    char *seed = obtain_seed(pamh, debug, username);
     if(seed == NULL){
         if(debug){
             pam_syslog(pamh, LOG_ERR, "The seed could not be obtained");
         }
-        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user %s could not be authenticated", username);
         closelog();
         return PAM_AUTH_ERR;
     }
@@ -283,17 +282,17 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     // Validar el input del usuario
     if (resp && resp->resp) {
         // Compara la respuesta del usuario con la seed
-        char* totp = obtain_totp(aes_decrypt_cbc(pamh, seed, strlen(seed), password),&err);
+        char* totp = obtain_totp(aes_decrypt_cbc(pamh, seed, strlen(seed), password, debug),&err);
         if(totp == NULL){
             if(debug){
             pam_syslog(pamh, LOG_ERR, "Error obtaining TOTP");
         }
-        pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+        pam_syslog(pamh, LOG_ERR, "Session closed, the user %s could not be authenticated", username);
         closelog();
         return PAM_AUTH_ERR;       
         }
         if (strcmp(resp->resp, totp) == 0) {
-            syslog(LOG_INFO, "User authenticated successfully");
+            syslog(LOG_INFO, "User %s authenticated successfully", username);
             free(resp->resp);
             free(resp);
             closelog();
@@ -302,7 +301,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
             if(debug){
             pam_syslog(pamh, LOG_ERR, "TOTP incorrect");
             }
-            pam_syslog(pamh, LOG_ERR, "Session closed, the user could not be authenticated");
+            pam_syslog(pamh, LOG_ERR, "Session closed, the user %s could not be authenticated", username);
             closelog();
             free(resp->resp);
             free(resp);
