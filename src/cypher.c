@@ -18,7 +18,6 @@ char* aes_encrypt_cbc(const char *plaintext, const char *password) {
     char *padded_plaintext = malloc(padded_len);   // Texto plano con padding
 
     if (!padded_plaintext) {
-        fprintf(stderr, "Error al asignar memoria para padded_plaintext\n");
         return NULL;
     }
 
@@ -38,7 +37,6 @@ char* aes_encrypt_cbc(const char *plaintext, const char *password) {
         key                   // Salida de la clave derivada
     );
     if (gcry_ret) {
-        fprintf(stderr, "Error al derivar la clave: %s\n", gcry_strerror(gcry_ret));
         free(padded_plaintext);
         return NULL;
     }
@@ -49,7 +47,6 @@ char* aes_encrypt_cbc(const char *plaintext, const char *password) {
     // Crear espacio para el texto cifrado
     ciphertext = malloc(padded_len);
     if (!ciphertext) {
-        fprintf(stderr, "Error al asignar memoria para ciphertext\n");
         free(padded_plaintext);
         return NULL;
     }
@@ -62,7 +59,6 @@ char* aes_encrypt_cbc(const char *plaintext, const char *password) {
     // Crear el manejador de cifrado
     gcry_ret = gcry_cipher_open(&cipher_hd, GCRY_CIPHER, GCRY_MODE, 0);
     if (gcry_ret) {
-        fprintf(stderr, "Error al abrir el manejador de cifrado: %s\n", gcry_strerror(gcry_ret));
         free(ciphertext);
         free(padded_plaintext);
         return NULL;
@@ -71,7 +67,6 @@ char* aes_encrypt_cbc(const char *plaintext, const char *password) {
     // Establecer la clave de cifrado
     gcry_ret = gcry_cipher_setkey(cipher_hd, key, KEY_SIZE);
     if (gcry_ret) {
-        fprintf(stderr, "Error al establecer la clave: %s\n", gcry_strerror(gcry_ret));
         gcry_cipher_close(cipher_hd);
         free(ciphertext);
         free(padded_plaintext);
@@ -81,7 +76,6 @@ char* aes_encrypt_cbc(const char *plaintext, const char *password) {
     // Establecer el vector de inicialización (IV)
     gcry_ret = gcry_cipher_setiv(cipher_hd, iv, BLOCK_SIZE);
     if (gcry_ret) {
-        fprintf(stderr, "Error al establecer el IV: %s\n", gcry_strerror(gcry_ret));
         gcry_cipher_close(cipher_hd);
         free(ciphertext);
         free(padded_plaintext);
@@ -91,7 +85,6 @@ char* aes_encrypt_cbc(const char *plaintext, const char *password) {
     // Cifrar el texto con padding
     gcry_ret = gcry_cipher_encrypt(cipher_hd, ciphertext, padded_len, padded_plaintext, padded_len);
     if (gcry_ret) {
-        fprintf(stderr, "Error al cifrar: %s\n", gcry_strerror(gcry_ret));
         gcry_cipher_close(cipher_hd);
         free(ciphertext);
         free(padded_plaintext);
@@ -137,14 +130,12 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
         key                   // Salida de la clave derivada
     );
     if (gcry_ret) {
-        fprintf(stderr, "Error al derivar la clave: %s\n", gcry_strerror(gcry_ret));
         return NULL;
     }
 
     // Crear espacio para el texto desencriptado
     decrypted = malloc(ciphertext_len);
     if (!decrypted) {
-        fprintf(stderr, "Error al asignar memoria para decrypted\n");
         return NULL;
     }
 
@@ -156,7 +147,6 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
     // Crear el manejador de cifrado
     gcry_ret = gcry_cipher_open(&cipher_hd, GCRY_CIPHER, GCRY_MODE, 0);
     if (gcry_ret) {
-        fprintf(stderr, "Error al abrir el manejador de cifrado: %s\n", gcry_strerror(gcry_ret));
         free(decrypted);
         return NULL;
     }
@@ -164,7 +154,6 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
     // Establecer la clave de cifrado
     gcry_ret = gcry_cipher_setkey(cipher_hd, key, KEY_SIZE);
     if (gcry_ret) {
-        fprintf(stderr, "Error al establecer la clave: %s\n", gcry_strerror(gcry_ret));
         gcry_cipher_close(cipher_hd);
         free(decrypted);
         return NULL;
@@ -173,7 +162,6 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
     // Establecer el vector de inicialización (IV)
     gcry_ret = gcry_cipher_setiv(cipher_hd, iv, BLOCK_SIZE);
     if (gcry_ret) {
-        fprintf(stderr, "Error al establecer el IV: %s\n", gcry_strerror(gcry_ret));
         gcry_cipher_close(cipher_hd);
         free(decrypted);
         return NULL;
@@ -182,7 +170,6 @@ char* aes_decrypt_cbc(const char *ciphertext, size_t ciphertext_len, const char 
     // Desencriptar el texto cifrado
     gcry_ret = gcry_cipher_decrypt(cipher_hd, decrypted, ciphertext_len, ciphertext, ciphertext_len);
     if (gcry_ret) {
-        fprintf(stderr, "Error al desencriptar: %s\n", gcry_strerror(gcry_ret));
         gcry_cipher_close(cipher_hd);
         free(decrypted);
         return NULL;

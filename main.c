@@ -75,7 +75,6 @@ int validate_password(const char *user, const char *password) {
 char *read_file(const char *file_path) {
     FILE *file = fopen(file_path, "r");
     if (file == NULL) {
-        perror("Error al abrir el archivo");
         return NULL;
     }
 
@@ -85,14 +84,12 @@ char *read_file(const char *file_path) {
 
     char *content = malloc(file_size + 1); // +1 para el carácter nulo
     if (content == NULL) {
-        perror("Error al asignar memoria");
         fclose(file);
         return NULL;
     }
 
     size_t read_size = fread(content, 1, file_size, file);
     if (read_size != file_size) {
-        perror("Error al leer el archivo");
         free(content);
         fclose(file);
         return NULL;
@@ -115,7 +112,6 @@ int main() {
     
     const char *username = getenv("USER");  // Obtener el nombre de usuario del entorno
     if (!username) {
-        fprintf(stderr, "No se pudo obtener el nombre de usuario.\n");
         return 1;
     }
     
@@ -136,7 +132,7 @@ int main() {
             printf("Contraseña incorrecta. Inténtalo de nuevo.\n");
             attempts++;
             if (attempts == max_attempts) {
-                printf("Número máximo de intentos alcanzado. Terminando el programa.\n");
+                printf("Número máximo de intentos alcanzado.\n");
                 return EXIT_FAILURE;
             }
         }
@@ -145,7 +141,6 @@ int main() {
     // Obtiene el directorio home del usuario actual
     const char *home_dir = getenv("HOME");
     if (home_dir == NULL) {
-        fprintf(stderr, "Error al obtener el directorio home\n");
         return EXIT_FAILURE;
     }
 
@@ -157,7 +152,7 @@ int main() {
     // Verificar si el archivo ya existe
     FILE *file = fopen(file_path, "r");
     if (file != NULL) {
-        printf("El archivo 2fa.txt ya existe en el directorio home. No se sobrescribirá.\n");
+        printf("2fa file does already exists.\n");
         fclose(file);
     } else {
         // Generar la semilla usando generate_seed
@@ -166,7 +161,6 @@ int main() {
         // Convertir la clave secreta a formato Base32
         char base32_secret[COTP_SECRET_BASE32_LEN + 1];  // +1 para el carácter nulo
         custom_base32_encode(secret, COTP_SECRET_MAX_LEN, base32_secret);
-        printf("Base32 Secret: %s\n", base32_secret);
 
         // Abre el archivo en modo escritura, creándolo si no existe
         file = fopen(file_path, "w");
@@ -201,11 +195,8 @@ int main() {
 
         // Cambia los permisos del archivo para que solo el dueño pueda leer y escribir
         if (chmod(file_path, S_IRUSR | S_IWUSR) != 0) {
-            perror("Error al cambiar permisos del archivo");
             return EXIT_FAILURE;
         }
-
-        printf("Permisos del archivo %s modificados exitosamente\n", file_path);
     }
 
     return EXIT_SUCCESS;
