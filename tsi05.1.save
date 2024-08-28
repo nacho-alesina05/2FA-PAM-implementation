@@ -34,7 +34,7 @@ El comando `make install` moverá la biblioteca compartida a la carpeta de segur
 .PP
 Configura el módulo PAM añadiendo la siguiente línea al archivo de configuración de PAM correspondiente (por ejemplo, /etc/pam.d/sshd):
 .sp
-.B auth required pam_test.so
+.B auth required pam_2fa.so
 .PP
 Asegúrate de que SSH esté configurado para permitir PAM editando el archivo /etc/ssh/sshd_config:
 .sp

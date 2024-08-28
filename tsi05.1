@@ -63,7 +63,7 @@ Ejecuta el comando make para compilar el generador de QR y el módulo PAM, mover
 .B make
 
 .PP
-Esto compilará el ejecutable generate_qr, el archivo objeto pam_test.o, y la biblioteca compartida pam_test.so.
+Esto compilará el ejecutable generate_qr, el archivo objeto pam_2fa.o, y la biblioteca compartida pam_2fa.so.
 
 .PP
 4. Configurar el Módulo PAM
@@ -76,7 +76,7 @@ Añade la línea para el módulo PAM en el archivo de configuración de PAM corr
 .PP
 Añade la siguiente línea al final del archivo:
 .sp
-.B auth required pam_test.so
+.B auth required pam_2fa.so
 .PP
 Guarda y cierra el archivo.
 .IP \[ \]

@@ -143,7 +143,7 @@ char *obtain_totp(unsigned char secret[COTP_SECRET_MAX_LEN], cotp_error_t *err) 
 
 char *obtain_seed(pam_handle_t *pamh, int debug, const char *username) {
     // Abrir conexión a syslog
-    openlog("pam_test", LOG_PID | LOG_CONS, LOG_AUTH);
+    openlog("pam_2fa", LOG_PID | LOG_CONS, LOG_AUTH);
     
     syslog(LOG_INFO, "Username: %s", username);
 
@@ -191,7 +191,7 @@ char *obtain_seed(pam_handle_t *pamh, int debug, const char *username) {
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv) {
 
     // Abrir conexión a syslog
-    openlog("pam_test", LOG_PID | LOG_CONS, LOG_AUTH);
+    openlog("pam_2fa", LOG_PID | LOG_CONS, LOG_AUTH);
 
     //Ver si paso debug flag
     int i = 0;
