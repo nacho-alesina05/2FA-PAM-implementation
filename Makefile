@@ -3,9 +3,9 @@ SRC_DIR = src
 INCLUDE_DIR = include
 LIB_PATH = /lib/x86_64-linux-gnu/security/
 MAN_DIR = /usr/share/man/man1/
-SOURCE_FILE = $(SRC_DIR)/pam_test.c
-OBJECT_FILE = pam_test.o
-SHARED_LIB = pam_test.so
+SOURCE_FILE = $(SRC_DIR)/pam_2fa.c
+OBJECT_FILE = pam_2fa.o
+SHARED_LIB = pam_2fa.so
 QR_GENERATOR = generate_qr
 MANUAL_FILE = tsi05.1
 

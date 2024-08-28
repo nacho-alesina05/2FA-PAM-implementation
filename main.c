@@ -150,7 +150,7 @@ int main() {
 
     // Construye la ruta del archivo
     char file_path[256];
-    snprintf(file_path, sizeof(file_path), "%s/2fa.txt", home_dir);
+    snprintf(file_path, sizeof(file_path), "%s/2fa", home_dir);
 
 
     // Verificar si el archivo ya existe
