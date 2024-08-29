@@ -1,21 +1,19 @@
 # 2FA-PAM-implementation
 
+## Prerequisites
+ Bibliotecas necesarias:
+
+              libcotp
+
+              libqrencode
+
+              libcrypto
+
+              libgcrypt
+
+              libpam
+
+              libpam_misc
 ## Installation
-The following libraries must be downloaded:
--libcotp
 
--qrencode
-
--libgcrypt
-
--libpam-dev
-
-## For generating & installing the module: 
-The ssh connection is hardcoded.
-
-sh build.sh
-
-
-#Comando para probar funcionalidades nuevas en el main.c:
-gcc -I./include -o generate_qr main.c src/generate_seed.c src/custom_base32_encode.c src/obtain_totp.c src/cypher.c -lcotp -lqrencode  -lcrypto -lgcrypt -lpam -lpam_misc
-./generate_qr
+Clone the code & run make install.
