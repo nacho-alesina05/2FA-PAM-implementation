@@ -1,66 +1,135 @@
 .TH TSI05 1 "August 2024" "Version 1.0" "User Manuals"
 .SH NAME
-tsi05 \- Módulo PAM para autenticación 2FA
+pam_2fa \- Módulo PAM para autenticación 2FA
 .SH SYNOPSIS
-.B tsi05
+.B pam_2fa
 .SH DESCRIPTION
-El programa tsi05 incluye un módulo PAM personalizado para autenticación de dos factores (2FA) y un generador de códigos QR para facilitar la configuración del 2FA.
+El programa pam_2fa incluye un módulo PAM personalizado para autenticación de dos factores (2FA) y un generador de códigos QR para facilitar la configuración del 2FA. Asegúrate de seguir cada paso cuidadosamente para asegurar una instalación y configuración correcta.
 
 .SH INSTALLATION
 .PP
-Para instalar el módulo PAM y el generador de QR, sigue los pasos a continuación:
-.IP 1
-Clona el repositorio y accede al directorio del proyecto:
+Esta guía proporciona instrucciones detalladas para instalar y configurar un módulo PAM personalizado para autenticación de dos factores (2FA) y un generador de códigos QR.
+
+.SH REQUISITOS PREVIOS
+.PP
+Sistema Operativo: Linux
+.PP
+Herramientas de Desarrollo:
+.IP \[ \]
+GCC
+.IP \[ \]
+Make
+.PP
+Bibliotecas necesarias:
+.IP \[ \]
+libcotp
+.IP \[ \]
+libqrencode
+.IP \[ \]
+libcrypto
+.IP \[ \]
+libgcrypt
+.IP \[ \]
+libpam
+.IP \[ \]
+libpam_misc
+.PP
+Permisos de Administrador: Se requiere acceso sudo para mover archivos y reiniciar servicios.
+
+.SH PASOS DE INSTALACIÓN
+.PP
+1. Clonar el Repositorio
+.IP \[ \]
+Asegúrate de tener el código fuente en tu máquina. Puedes clonar el repositorio desde el control de versiones (si aplica).
 .sp
-.B git clone https://example.com/repository.git
-.B cd repository
-.IP 2
+.B git clone https://github.com/nacho-alesina05/2FA-PAM-implementation.git
+
+.PP
+2. Preparar el Entorno
+.IP \[ \]
 Instala las dependencias necesarias:
 .sp
 .B sudo apt-get update
-.B sudo apt-get install build-essential libcotp-dev libqrencode-dev libsodium-dev libssl-dev libgcrypt-dev libpam-dev
-.IP 3
-Compila el generador de QR y el módulo PAM:
+.B sudo apt-get install build-essential libcotp-dev libqrencode-dev libgcrypt-dev libpam-dev
+
+.PP
+3. Compilar el Generador de QR y el Módulo PAM
+.IP \[ \]
+a. Generar el Ejecutable QR
+.IP \[ \]
+Ejecuta el comando make para compilar el generador de QR y el módulo PAM, mover la biblioteca compartida a la carpeta de seguridad de PAM y reiniciar el servicio SSH:
 .sp
 .B make
-.IP 4
-Instala el módulo PAM:
-.sp
-.B make install
-.PP
-El comando `make install` moverá la biblioteca compartida a la carpeta de seguridad de PAM y reiniciará el servicio SSH.
 
-.SH CONFIGURATION
 .PP
-Configura el módulo PAM añadiendo la siguiente línea al archivo de configuración de PAM correspondiente (por ejemplo, /etc/pam.d/sshd):
+Esto compilará el ejecutable generate_qr, el archivo objeto pam_2fa.o, y la biblioteca compartida pam_2fa.so.
+
+.PP
+4. Configurar el Módulo PAM
+.IP \[ \]
+a. Editar la Configuración PAM
+.IP \[ \]
+Añade la línea para el módulo PAM en el archivo de configuración de PAM correspondiente. Por ejemplo, para SSH, edita el archivo /etc/pam.d/sshd:
+.sp
+.B sudo nano /etc/pam.d/sshd
+.PP
+Añade la siguiente línea al final del archivo:
 .sp
 .B auth required pam_2fa.so
 .PP
-Asegúrate de que SSH esté configurado para permitir PAM editando el archivo /etc/ssh/sshd_config:
+Guarda y cierra el archivo.
+.IP \[ \]
+b. Configurar SSH
+.IP \[ \]
+Asegúrate de que el servicio SSH esté configurado para permitir el uso de PAM. Edita el archivo /etc/ssh/sshd_config:
+.sp
+.B sudo nano /etc/ssh/sshd_config
+.PP
+Verifica que las siguientes líneas estén presentes y configuradas correctamente:
 .sp
 .B UsePAM yes
 .B ChallengeResponseAuthentication yes
 .PP
+Guarda y cierra el archivo.
+.PP
 Reinicia el servicio SSH:
 .sp
 .B sudo systemctl restart sshd
-.SH USAGE
+
 .PP
+5. Configurar el Generador de QR
+.IP \[ \]
+a. Ejecutar el Generador de QR
+.IP \[ \]
 Ejecuta el generador de QR para crear un código QR que puedas escanear con tu aplicación de autenticación:
 .sp
 .B ./generate_qr
 .PP
-Introduce la contraseña que se utilizará para cifrar la semilla cuando se te solicite.
+Introduce la contraseña del sistema cuando se te solicite, que se utilizará para cifrar la semilla. Esta semilla se almacenará encriptada en el archivo 2fa en el directorio de inicio del usuario.
 
-.SH CLEANUP
 .PP
-Para eliminar archivos generados durante el proceso de construcción, usa:
+6. Verificar la Instalación
+.IP \[ \]
+Para verificar que la autenticación 2FA esté funcionando correctamente, intenta iniciar sesión en el servidor SSH y proporciona el código 2FA cuando se te solicite.
+
+.PP
+7. Limpiar Archivos Generados
+.IP \[ \]
+Para eliminar archivos generados durante el proceso de construcción, utiliza el comando:
 .sp
 .B make clean
-.SH TROUBLESHOOTING
+
+.SH PROBLEMAS Y SOLUCIONES
 .PP
-- **Error al compilar el módulo PAM**: Asegúrate de que todas las bibliotecas necesarias estén instaladas.
+- **Error al compilar el módulo PAM**: Asegúrate de que todas las bibliotecas necesarias estén instaladas y que las rutas a los archivos de encabezado sean correctas.
 .PP
-- **Error de autenticación**: Verifica la configuración en /etc/pam.d/sshd y el archivo 2fa.
-.SH AUTHOR
-Rodrigo Aguillon <rodrigo.aguillon@seciu.edu.uy>
+- **Error de autenticación**: Verifica que el módulo PAM esté configurado correctamente en el archivo /etc/pam.d/sshd y que el archivo 2fa contenga la semilla cifrada correctamente.
+.PP
+- **Error de instalación del módulo PAM**: El módulo PAM, se instala por defecto en /lib/x86_64-linux-gnu/security/. En caso de que tu sistema operativo no contenga dicha carpeta (muchos tienen directamente /lib/security/) se debe modificar la variable LIB_PATH en el makefile para que se corresponda a la carpeta en donde se encuentran los módulos .so de PAM.
+.PP
+- **Otros errores**: En caso de algún otro error se recomienda encender la flag de debug al colocar el módulo en algún stack con el fin de obtener información más detallada de lo que sucede. 
+.SH AUTHORS
+Rodrigo Aguillon <rodrigo.aguillon@fing.edu.uy>
+.PP
+Ignacio Alesina  <ignacio.alesina@fing.edu.uy>
+

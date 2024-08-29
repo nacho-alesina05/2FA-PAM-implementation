@@ -1,10 +1,10 @@
 .TH TSI05 1 "August 2024" "Version 1.0" "User Manuals"
 .SH NAME
-tsi05 \- Módulo PAM para autenticación 2FA
+pam_2fa \- Módulo PAM para autenticación 2FA
 .SH SYNOPSIS
-.B tsi05
+.B pam_2fa
 .SH DESCRIPTION
-El programa tsi05 incluye un módulo PAM personalizado para autenticación de dos factores (2FA) y un generador de códigos QR para facilitar la configuración del 2FA. Asegúrate de seguir cada paso cuidadosamente para asegurar una instalación y configuración correcta.
+El programa pam_2fa incluye un módulo PAM personalizado para autenticación de dos factores (2FA) y un generador de códigos QR para facilitar la configuración del 2FA. Asegúrate de seguir cada paso cuidadosamente para asegurar una instalación y configuración correcta.
 
 .SH INSTALLATION
 .PP
@@ -12,7 +12,7 @@ Esta guía proporciona instrucciones detalladas para instalar y configurar un m�
 
 .SH REQUISITOS PREVIOS
 .PP
-Sistema Operativo: Ubuntu 20.04 (o una versión similar de Linux)
+Sistema Operativo: Linux
 .PP
 Herramientas de Desarrollo:
 .IP \[ \]
@@ -43,7 +43,6 @@ Permisos de Administrador: Se requiere acceso sudo para mover archivos y reinici
 Asegúrate de tener el código fuente en tu máquina. Puedes clonar el repositorio desde el control de versiones (si aplica).
 .sp
 .B git clone https://github.com/nacho-alesina05/2FA-PAM-implementation.git
-.B cd repository
 
 .PP
 2. Preparar el Entorno
@@ -106,7 +105,7 @@ Ejecuta el generador de QR para crear un código QR que puedas escanear con tu a
 .sp
 .B ./generate_qr
 .PP
-Introduce la contraseña que se utilizará para cifrar la semilla cuando se te solicite. Esta semilla se almacenará en el archivo 2fa en el directorio de inicio del usuario.
+Introduce la contraseña del sistema cuando se te solicite, que se utilizará para cifrar la semilla. Esta semilla se almacenará encriptada en el archivo 2fa en el directorio de inicio del usuario.
 
 .PP
 6. Verificar la Instalación
@@ -125,7 +124,10 @@ Para eliminar archivos generados durante el proceso de construcción, utiliza el
 - **Error al compilar el módulo PAM**: Asegúrate de que todas las bibliotecas necesarias estén instaladas y que las rutas a los archivos de encabezado sean correctas.
 .PP
 - **Error de autenticación**: Verifica que el módulo PAM esté configurado correctamente en el archivo /etc/pam.d/sshd y que el archivo 2fa contenga la semilla cifrada correctamente.
-
+.PP
+- **Error de instalación del módulo PAM**: El módulo PAM, se instala por defecto en /lib/x86_64-linux-gnu/security/. En caso de que tu sistema operativo no contenga dicha carpeta (muchos tienen directamente /lib/security/) se debe modificar la variable LIB_PATH en el makefile para que se corresponda a la carpeta en donde se encuentran los módulos .so de PAM.
+.PP
+- **Otros errores**: En caso de algún otro error se recomienda encender la flag de debug al colocar el módulo en algún stack con el fin de obtener información más detallada de lo que sucede. 
 .SH AUTHORS
 Rodrigo Aguillon <rodrigo.aguillon@fing.edu.uy>
 .PP
