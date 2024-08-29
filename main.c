@@ -130,7 +130,7 @@ int main() {
     if (validate_password(username, password)) {
         printf("Contraseña verificada correctamente.\n");
     } else {
-        printf("Contraseña incorrecta. Inténtalo de nuevo.\n");
+        printf("Contraseña incorrecta.\n");
         return EXIT_FAILURE;
     }
 
