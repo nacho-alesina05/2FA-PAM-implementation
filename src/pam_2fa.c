@@ -149,7 +149,7 @@ char *obtain_seed(pam_handle_t *pamh, int debug, const char *username) {
 
     // Construir la ruta del archivo
     char file_path[256];
-    snprintf(file_path, sizeof(file_path), "/home/%s/2fa.txt", username);
+    snprintf(file_path, sizeof(file_path), "/home/%s/2fa", username);
     syslog(LOG_INFO, "2FA file_path: %s", file_path);
 
     // Abrir el archivo para lectura

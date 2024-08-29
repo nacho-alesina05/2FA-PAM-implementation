@@ -61,6 +61,6 @@ Para eliminar archivos generados durante el proceso de construcción, usa:
 .PP
 - **Error al compilar el módulo PAM**: Asegúrate de que todas las bibliotecas necesarias estén instaladas.
 .PP
-- **Error de autenticación**: Verifica la configuración en /etc/pam.d/sshd y el archivo 2fa.txt.
+- **Error de autenticación**: Verifica la configuración en /etc/pam.d/sshd y el archivo 2fa.
 .SH AUTHOR
 Rodrigo Aguillon <rodrigo.aguillon@seciu.edu.uy>
