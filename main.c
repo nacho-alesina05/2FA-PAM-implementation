@@ -72,41 +72,6 @@ int validate_password(const char *user, const char *password) {
     return (retval == PAM_SUCCESS ? 1 : 0); // Return 1 if successful, 0 if not
 }
 
-char *read_file(const char *file_path) {
-    FILE *file = fopen(file_path, "r");
-    if (file == NULL) {
-        return NULL;
-    }
-
-    fseek(file, 0, SEEK_END);
-    long file_size = ftell(file);
-    rewind(file);
-
-    char *content = malloc(file_size + 1); // +1 para el carácter nulo
-    if (content == NULL) {
-        fclose(file);
-        return NULL;
-    }
-
-    size_t read_size = fread(content, 1, file_size, file);
-    if (read_size != file_size) {
-        free(content);
-        fclose(file);
-        return NULL;
-    }
-
-    content[file_size] = '\0';
-    fclose(file);
-
-    // Eliminar el carácter de nueva línea si existe
-    char *newline = strchr(content, '\n');
-    if (newline) {
-        *newline = '\0';
-    }
-
-    return content;
-}
-
 int main() {
 
     
