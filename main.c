@@ -82,29 +82,21 @@ int main() {
     
     // Solicitar la contraseña para cifrar con un máximo de 3 intentos
     char *password;
-    int attempts = 0;
-    const int max_attempts = 3;
-    while (attempts < max_attempts) {
-        password = getpass("Introduce la contraseña para cifrar: ");
-        // Eliminar el salto de línea al final si es necesario
-        size_t len = strlen(password);
-        if (len > 0 && password[len-1] == '\n') {
-            password[len-1] = '\0';
-        }
-        password[strcspn(password, "\n")] = '\0'; // Eliminar el salto de línea
 
-        // Verificar la contraseña ingresada contra la contraseña del sistema usando PAM
-        if (validate_password(username, password)) {
-            printf("Contraseña verificada correctamente.\n");
-            break;
-        } else {
-            printf("Contraseña incorrecta. Inténtalo de nuevo.\n");
-            attempts++;
-            if (attempts == max_attempts) {
-                printf("Número máximo de intentos alcanzado.\n");
-                return EXIT_FAILURE;
-            }
-        }
+    password = getpass("Introduce la contraseña para cifrar: ");
+    // Eliminar el salto de línea al final si es necesario
+    size_t len = strlen(password);
+    if (len > 0 && password[len-1] == '\n') {
+        password[len-1] = '\0';
+    }
+    password[strcspn(password, "\n")] = '\0'; // Eliminar el salto de línea
+
+    // Verificar la contraseña ingresada contra la contraseña del sistema usando PAM
+    if (validate_password(username, password)) {
+        printf("Contraseña verificada correctamente.\n");
+    } else {
+        printf("Contraseña incorrecta. Inténtalo de nuevo.\n");
+        return EXIT_FAILURE;
     }
 
     // Obtiene el directorio home del usuario actual
